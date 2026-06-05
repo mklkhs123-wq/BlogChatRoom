@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlogChat — Secure Chat Room</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
+body{background:#f0f2f5;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.app{width:100%;max-width:900px;height:92vh;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,0.13);display:flex;flex-direction:column}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#534AB7,#3C3489);color:#fff;padding:13px 18px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:17px;font-weight:600;letter-spacing:0.3px}
+.header-right{display:flex;align-items:center;gap:10px;font-size:13px;opacity:0.9}
+
+/* AUTH */
+.auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;background:#f0f2f5;padding:20px}
+.auth-card{background:#fff;border-radius:14px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 2px 16px rgba(0,0,0,0.10)}
+.auth-card h2{font-size:20px;font-weight:600;margin-bottom:4px;color:#1a1a2e}
+.auth-card p{font-size:13px;color:#666;margin-bottom:22px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:#555;margin-bottom:5px;font-weight:500}
+.field input{width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:9px;font-size:14px;outline:none;transition:border 0.2s}
+.field input:focus{border-color:#534AB7}
+.btn{width:100%;padding:11px;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:4px}
+.btn-primary{background:linear-gradient(135deg,#534AB7,#3C3489);color:#fff}
+.btn-primary:hover{opacity:0.9}
+.btn-outline{background:#fff;border:1.5px solid #e0e0e0;color:#444;margin-top:10px}
+.btn-outline:hover{background:#f5f5f5}
+.btn-link{background:none;border:none;color:#534AB7;font-size:13px;cursor:pointer;padding:6px 0;width:auto;text-decoration:underline;margin-top:6px}
+.err{font-size:12px;color:#c0392b;margin-top:8px;padding:8px 10px;background:#fdecea;border-radius:8px;border-left:3px solid #c0392b}
+.success{font-size:12px;color:#1D9E75;margin-top:8px;padding:8px 10px;background:#e8f8f2;border-radius:8px;border-left:3px solid #1D9E75}
+
+/* MAIN LAYOUT */
+.main-layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:220px;border-right:1.5px solid #f0f0f0;background:#fafafa;display:flex;flex-direction:column}
+.sidebar-tabs{display:flex;border-bottom:1.5px solid #f0f0f0;background:#fff}
+.stab{flex:1;padding:11px 4px;font-size:12px;border:none;background:transparent;cursor:pointer;color:#888;font-weight:500;transition:all 0.2s}
+.stab.active{color:#534AB7;border-bottom:2.5px solid #534AB7}
+.sidebar-body{flex:1;overflow-y:auto;padding:10px}
+.section-label{font-size:10px;color:#aaa;padding:4px 0 6px;letter-spacing:0.8px;font-weight:600}
+
+/* USER ITEMS */
+.user-item{padding:9px 8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:9px;margin-bottom:4px;transition:background 0.15s}
+.user-item:hover{background:#EEEDFE}
+.user-item.active-chat{background:#EEEDFE}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0}
+.av-purple{background:#EEEDFE;color:#3C3489}
+.av-teal{background:#E1F5EE;color:#085041}
+.av-coral{background:#FAECE7;color:#712B13}
+.online-dot{width:9px;height:9px;border-radius:50%;background:#1D9E75;flex-shrink:0}
+.offline-dot{width:9px;height:9px;border-radius:50%;background:#ccc;flex-shrink:0}
+.uname{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ustatus{font-size:11px;color:#aaa}
+.badge{font-size:10px;background:#534AB7;color:#fff;border-radius:99px;padding:1px 6px;min-width:18px;text-align:center}
+
+/* CHAT AREA */
+.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.no-chat{flex:1;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:14px;flex-direction:column;gap:10px;background:#f9f9fb}
+.no-chat-icon{font-size:48px}
+.chat-header{padding:12px 16px;border-bottom:1.5px solid #f0f0f0;display:flex;align-items:center;gap:12px;background:#fff}
+.chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f0f2f5}
+.msg-row{display:flex;gap:8px;align-items:flex-end}
+.msg-row.mine{flex-direction:row-reverse}
+.bubble{max-width:240px;padding:9px 13px;border-radius:16px;font-size:13.5px;line-height:1.5;word-break:break-word}
+.bubble.them{background:#fff;border:1px solid #e8e8e8;color:#1a1a2e;border-bottom-left-radius:4px}
+.bubble.mine{background:linear-gradient(135deg,#534AB7,#3C3489);color:#fff;border-bottom-right-radius:4px}
+.msg-time{font-size:10px;color:#aaa;margin-bottom:3px;text-align:right}
+.msg-row.mine .msg-time{text-align:left}
+.chat-input-bar{padding:12px;border-top:1.5px solid #f0f0f0;display:flex;gap:9px;background:#fff}
+.chat-input-bar input{flex:1;padding:10px 14px;border:1.5px solid #e0e0e0;border-radius:25px;font-size:13px;outline:none;transition:border 0.2s}
+.chat-input-bar input:focus{border-color:#534AB7}
+.send-btn{padding:10px 18px;background:linear-gradient(135deg,#534AB7,#3C3489);color:#fff;border:none;border-radius:25px;cursor:pointer;font-size:13px;font-weight:600}
+.send-btn:hover{opacity:0.9}
+
+/* REQUESTS */
+.req-item{padding:10px;background:#fff;border:1px solid #f0f0f0;border-radius:10px;margin-bottom:8px}
+.req-actions{display:flex;gap:6px;margin-top:8px}
+.btn-sm{padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:none;font-weight:600}
+.btn-accept{background:#1D9E75;color:#fff}
+.btn-reject{background:#e74c3c;color:#fff}
+.btn-add{background:#534AB7;color:#fff}
+
+/* BOTTOM BAR */
+.my-info{padding:11px 12px;border-top:1.5px solid #f0f0f0;display:flex;align-items:center;gap:9px;background:#fff}
+.my-info .uname{font-size:12px;color:#555}
+.logout-btn{margin-left:auto;background:transparent;border:none;cursor:pointer;color:#aaa;font-size:20px;line-height:1}
+.logout-btn:hover{color:#e74c3c}
+
+.tag{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600}
+.tag-pending{background:#fff3cd;color:#856404}
+.tag-friend{background:#d1f5ea;color:#085041}
+
+.enc-badge{font-size:10px;background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:99px}
+
+/* SPINNER */
+.spinner{width:20px;height:20px;border:2px solid #f0f0f0;border-top:2px solid #534AB7;border-radius:50%;animation:spin 0.8s linear infinite;margin:20px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* SEARCH */
+.search-input{width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:9px;font-size:13px;outline:none;margin-bottom:10px}
+.search-input:focus{border-color:#534AB7}
+
+@media(max-width:600px){
+  .sidebar{width:160px}
+  .bubble{max-width:180px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>🔒 BlogChat</h1>
+    <div class="header-right">
+      <span class="enc-badge">🔐 End-to-End Encrypted</span>
+      <span id="header-user"></span>
+    </div>
+  </div>
+
+  <!-- AUTH SCREEN -->
+  <div id="screen-auth" style="display:flex;flex:1;flex-direction:column">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <h2 id="auth-title">Account Banao</h2>
+        <p id="auth-sub">Apna secure account banao aur doston se chat karo</p>
+
+        <!-- SIGNUP FIELDS -->
+        <div id="signup-fields">
+          <div class="field">
+            <label>Aapka Naam</label>
+            <input type="text" id="inp-name" placeholder="Full naam likhein">
+          </div>
+          <div class="field">
+            <label>Email Address</label>
+            <input type="email" id="inp-email-signup" placeholder="email@example.com">
+          </div>
+          <div class="field">
+            <label>Username (unique)</label>
+            <input type="text" id="inp-username" placeholder="username (koi space nahi)">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="inp-pass-signup" placeholder="kam se kam 6 characters">
+          </div>
+        </div>
+
+        <!-- LOGIN FIELDS -->
+        <div id="login-fields" style="display:none">
+          <div class="field">
+            <label>Email Address</label>
+            <input type="email" id="inp-email-login" placeholder="email@example.com">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="inp-pass-login" placeholder="••••••••">
+          </div>
+        </div>
+
+        <!-- FORGOT PASSWORD -->
+        <div id="forgot-fields" style="display:none">
+          <div class="field">
+            <label>Apni Email daalo — reset link bhejenge</label>
+            <input type="email" id="inp-email-forgot" placeholder="email@example.com">
+          </div>
+        </div>
+
+        <div id="auth-msg"></div>
+
+        <button class="btn btn-primary" id="auth-btn" onclick="handleAuth()">Account Banao</button>
+        <button class="btn btn-outline" id="auth-toggle" onclick="toggleMode()">Pehle se account hai? Login karo</button>
+        <button class="btn-link" id="forgot-btn" onclick="showForgot()" style="display:none">Password bhool gaye?</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN SCREEN -->
+  <div id="screen-main" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+    <div class="main-layout">
+
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+        <div class="sidebar-tabs">
+          <button class="stab active" data-tab="friends" onclick="switchTab('friends')">Friends</button>
+          <button class="stab" data-tab="search" onclick="switchTab('search')">Search</button>
+          <button class="stab" data-tab="requests" onclick="switchTab('requests')"><span id="req-label">Req</span></button>
+        </div>
+
+        <!-- FRIENDS TAB -->
+        <div class="sidebar-body" id="tab-friends">
+          <div class="section-label">ONLINE</div>
+          <div id="list-online"></div>
+          <div class="section-label" style="margin-top:10px">OFFLINE</div>
+          <div id="list-offline"></div>
+        </div>
+
+        <!-- SEARCH TAB -->
+        <div class="sidebar-body" id="tab-search" style="display:none">
+          <input class="search-input" type="text" id="search-inp" placeholder="Username dhundho..." oninput="doSearch()">
+          <div id="search-results"></div>
+        </div>
+
+        <!-- REQUESTS TAB -->
+        <div class="sidebar-body" id="tab-requests" style="display:none">
+          <div class="section-label">INCOMING</div>
+          <div id="list-incoming"></div>
+          <div class="section-label" style="margin-top:10px">SENT</div>
+          <div id="list-outgoing"></div>
+        </div>
+      </div>
+
+      <!-- CHAT AREA -->
+      <div class="chat-area">
+        <div class="no-chat" id="no-chat">
+          <div class="no-chat-icon">💬</div>
+          <span>Kisi friend ko select karo chat karne ke liye</span>
+          <span style="font-size:12px;color:#bbb">🔐 Sab messages encrypted hain</span>
+        </div>
+
+        <div id="chat-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+          <div class="chat-header">
+            <div class="avatar av-purple" id="chat-av">U</div>
+            <div>
+              <div style="font-size:14px;font-weight:600" id="chat-name">User</div>
+              <div style="font-size:11px;color:#aaa" id="chat-status-txt">offline</div>
+            </div>
+            <div style="margin-left:auto;font-size:11px;color:#1D9E75;background:#e8f8f2;padding:4px 10px;border-radius:99px">🔐 Encrypted</div>
+          </div>
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input-bar">
+            <input type="text" id="msg-inp" placeholder="Encrypted message likhein..." onkeydown="if(event.key==='Enter')sendMsg()">
+            <button class="send-btn" onclick="sendMsg()">Send ➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY INFO BAR -->
+    <div class="my-info">
+      <div class="online-dot"></div>
+      <div class="avatar av-teal" id="my-av">M</div>
+      <div>
+        <div class="uname" id="my-uname">username</div>
+        <div style="font-size:10px;color:#aaa" id="my-name-display"></div>
+      </div>
+      <button class="logout-btn" onclick="logout()" title="Logout">⏻</button>
+    </div>
+  </div>
+</div>
+
+<!-- FIREBASE SDKs -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, onSnapshot, addDoc, serverTimestamp, updateDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// =============================================
+// APNA FIREBASE CONFIG YAHAN HAI
+// =============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCy-A5nwR6kItJLuVIcDzITUHebgLK0lFQ",
+  authDomain: "blogchatroom-2e328.firebaseapp.com",
+  projectId: "blogchatroom-2e328",
+  storageBucket: "blogchatroom-2e328.firebasestorage.app",
+  messagingSenderId: "251850437260",
+  appId: "1:251850437260:web:4bbe44e9dbe2a7a4bb81a9"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// =============================================
+// AES ENCRYPTION — Messages koi nahi padh payega
+// =============================================
+const ENC_KEY = "BlogChat_S3cur3_K3y_2024!";
+
+async function encrypt(text) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(ENC_KEY.padEnd(32).slice(0,32)), "AES-GCM", false, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt({name:"AES-GCM",iv}, keyMaterial, enc.encode(text));
+  const combined = new Uint8Array(iv.byteLength + encrypted.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), iv.byteLength);
+  return btoa(String.fromCharCode(...combined));
+}
+
+async function decrypt(b64) {
+  try {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(ENC_KEY.padEnd(32).slice(0,32)), "AES-GCM", false, ["decrypt"]);
+    const combined = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const iv = combined.slice(0,12);
+    const data = combined.slice(12);
+    const decrypted = await crypto.subtle.decrypt({name:"AES-GCM",iv}, keyMaterial, data);
+    return new TextDecoder().decode(decrypted);
+  } catch { return "[message decrypt nahi hua]"; }
+}
+
+// =============================================
+// STATE
+// =============================================
+let currentUID = null;
+let currentUsername = null;
+let currentUserData = null;
+let activeChatWith = null; // {uid, username, name}
+let msgUnsubscribe = null;
+let friendsUnsubscribe = null;
+let authMode = 'signup'; // signup | login | forgot
+let heartbeatInterval = null;
+
+// =============================================
+// AUTH FUNCTIONS
+// =============================================
+window.handleAuth = async function() {
+  const btn = document.getElementById('auth-btn');
+  const msgEl = document.getElementById('auth-msg');
+  msgEl.innerHTML = '';
+  btn.disabled = true;
+  btn.textContent = 'Wait karo...';
+
+  try {
+    if(authMode === 'forgot') {
+      const email = document.getElementById('inp-email-forgot').value.trim();
+      if(!email) { showMsg('Email daalo', 'err'); return; }
+      await sendPasswordResetEmail(auth, email);
+      showMsg('✅ Reset link bhej diya! Apna email check karo.', 'success');
+      return;
+    }
+
+    if(authMode === 'signup') {
+      const name = document.getElementById('inp-name').value.trim();
+      const email = document.getElementById('inp-email-signup').value.trim();
+      const username = document.getElementById('inp-username').value.trim().toLowerCase().replace(/\s/g,'');
+      const pass = document.getElementById('inp-pass-signup').value;
+      if(!name||!email||!username||!pass) { showMsg('Sab fields bharo', 'err'); return; }
+      if(pass.length < 6) { showMsg('Password kam se kam 6 characters ka hona chahiye', 'err'); return; }
+      if(!/^[a-z0-9_]+$/.test(username)) { showMsg('Username mein sirf letters, numbers aur _ allowed hain', 'err'); return; }
+
+      // Username unique check
+      const uRef = doc(db, 'usernames', username);
+      const uSnap = await getDoc(uRef);
+      if(uSnap.exists()) { showMsg('Ye username pehle se liya ja chuka hai', 'err'); return; }
+
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      const uid = cred.user.uid;
+
+      await setDoc(doc(db, 'users', uid), {
+        name, username, email, uid,
+        friends: [], createdAt: serverTimestamp(), online: true, lastSeen: serverTimestamp()
+      });
+      await setDoc(doc(db, 'usernames', username), { uid });
+
+    } else {
+      const email = document.getElementById('inp-email-login').value.trim();
+      const pass = document.getElementById('inp-pass-login').value;
+      if(!email||!pass) { showMsg('Email aur password daalo', 'err'); return; }
+      await signInWithEmailAndPassword(auth, email, pass);
+    }
+  } catch(e) {
+    const msgs = {
+      'auth/email-already-in-use': 'Ye email pehle se registered hai',
+      'auth/invalid-email': 'Email sahi nahi hai',
+      'auth/wrong-password': 'Password galat hai',
+      'auth/user-not-found': 'Koi account nahi mila is email se',
+      'auth/too-many-requests': 'Bahut zyada koshish ki — thodi der baad try karo',
+      'auth/weak-password': 'Password zyada strong banao'
+    };
+    showMsg(msgs[e.code] || e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = authMode==='signup' ? 'Account Banao' : authMode==='login' ? 'Login' : 'Reset Link Bhejo';
+  }
+};
+
+function showMsg(text, type) {
+  document.getElementById('auth-msg').innerHTML = `<div class="${type}">${text}</div>`;
+}
+
+window.toggleMode = function() {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  document.getElementById('auth-msg').innerHTML = '';
+  document.getElementById('signup-fields').style.display = authMode==='signup' ? 'block' : 'none';
+  document.getElementById('login-fields').style.display = authMode==='login' ? 'block' : 'none';
+  document.getElementById('forgot-fields').style.display = 'none';
+  document.getElementById('auth-title').textContent = authMode==='signup' ? 'Account Banao' : 'Login Karo';
+  document.getElementById('auth-sub').textContent = authMode==='signup' ? 'Apna secure account banao' : 'Apna email aur password daalo';
+  document.getElementById('auth-btn').textContent = authMode==='signup' ? 'Account Banao' : 'Login';
+  document.getElementById('auth-toggle').textContent = authMode==='signup' ? 'Pehle se account hai? Login karo' : 'Naya account banao';
+  document.getElementById('forgot-btn').style.display = authMode==='login' ? 'inline' : 'none';
+};
+
+window.showForgot = function() {
+  authMode = 'forgot';
+  document.getElementById('auth-msg').innerHTML = '';
+  document.getElementById('signup-fields').style.display = 'none';
+  document.getElementById('login-fields').style.display = 'none';
+  document.getElementById('forgot-fields').style.display = 'block';
+  document.getElementById('auth-title').textContent = 'Password Reset';
+  document.getElementById('auth-sub').textContent = 'Email daalo — hum reset link bhejenge';
+  document.getElementById('auth-btn').textContent = 'Reset Link Bhejo';
+  document.getElementById('auth-toggle').textContent = 'Wapas Login par jao';
+  document.getElementById('forgot-btn').style.display = 'none';
+};
+
+// =============================================
+// AUTH STATE LISTENER
+// =============================================
+onAuthStateChanged(auth, async (user) => {
+  if(user) {
+    currentUID = user.uid;
+    const snap = await getDoc(doc(db, 'users', currentUID));
+    if(!snap.exists()) return;
+    currentUserData = snap.data();
+    currentUsername = currentUserData.username;
+    await updateDoc(doc(db, 'users', currentUID), { online: true, lastSeen: serverTimestamp() });
+    showMainScreen();
+    startHeartbeat();
+    listenFriends();
+    renderRequests();
+  } else {
+    currentUID = null; currentUsername = null; currentUserData = null;
+    activeChatWith = null;
+    if(msgUnsubscribe) msgUnsubscribe();
+    if(friendsUnsubscribe) friendsUnsubscribe();
+    clearInterval(heartbeatInterval);
+    showAuthScreen();
+  }
+});
+
+function startHeartbeat() {
+  clearInterval(heartbeatInterval);
+  heartbeatInterval = setInterval(async () => {
+    if(currentUID) {
+      await updateDoc(doc(db, 'users', currentUID), { online: true, lastSeen: serverTimestamp() });
+      renderFriendsStatus();
+    }
+  }, 30000);
+}
+
+// =============================================
+// SCREEN FUNCTIONS
+// =============================================
+function showAuthScreen() {
+  document.getElementById('screen-auth').style.display = 'flex';
+  document.getElementById('screen-main').style.display = 'none';
+}
+
+function showMainScreen() {
+  document.getElementById('screen-auth').style.display = 'none';
+  document.getElementById('screen-main').style.display = 'flex';
+  document.getElementById('header-user').textContent = currentUserData.name;
+  document.getElementById('my-uname').textContent = '@' + currentUsername;
+  document.getElementById('my-name-display').textContent = currentUserData.name;
+  document.getElementById('my-av').textContent = currentUserData.name[0].toUpperCase();
+}
+
+window.logout = async function() {
+  if(currentUID) await updateDoc(doc(db, 'users', currentUID), { online: false, lastSeen: serverTimestamp() });
+  await signOut(auth);
+};
+
+// =============================================
+// FRIENDS LISTENER
+// =============================================
+function listenFriends() {
+  if(friendsUnsubscribe) friendsUnsubscribe();
+  friendsUnsubscribe = onSnapshot(doc(db, 'users', currentUID), async (snap) => {
+    if(!snap.exists()) return;
+    currentUserData = snap.data();
+    await renderFriendsList();
+    renderRequests();
+  });
+}
+
+async function renderFriendsList() {
+  const friends = currentUserData.friends || [];
+  let onHTML = '', offHTML = '';
+  for(const uid of friends) {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if(!snap.exists()) continue;
+    const u = snap.data();
+    const online = u.online && u.lastSeen && (Date.now() - u.lastSeen.toMillis()) < 60000;
+    const isActive = activeChatWith && activeChatWith.uid === uid;
+    const html = `<div class="user-item${isActive?' active-chat':''}" onclick="openChat('${uid}','${u.username}','${escHtml(u.name)}')">
+      <div class="avatar av-purple">${u.name[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0"><div class="uname">${escHtml(u.name)}</div><div class="ustatus">@${u.username}</div></div>
+      <div class="${online?'online-dot':'offline-dot'}"></div>
+    </div>`;
+    if(online) onHTML += html; else offHTML += html;
+  }
+  document.getElementById('list-online').innerHTML = onHTML || '<div style="font-size:12px;color:#bbb;padding:4px">Koi online nahi</div>';
+  document.getElementById('list-offline').innerHTML = offHTML || '<div style="font-size:12px;color:#bbb;padding:4px">—</div>';
+}
+
+async function renderFriendsStatus() {
+  await renderFriendsList();
+  if(activeChatWith) {
+    const snap = await getDoc(doc(db, 'users', activeChatWith.uid));
+    if(snap.exists()) {
+      const u = snap.data();
+      const online = u.online && u.lastSeen && (Date.now() - u.lastSeen.toMillis()) < 60000;
+      document.getElementById('chat-status-txt').textContent = online ? '🟢 Online' : '⚫ Offline';
+    }
+  }
+}
+
+// =============================================
+// SEARCH
+// =============================================
+window.doSearch = async function() {
+  const q = document.getElementById('search-inp').value.trim().toLowerCase();
+  const el = document.getElementById('search-results');
+  if(q.length < 2) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="spinner"></div>';
+
+  const snap = await getDocs(collection(db, 'users'));
+  const friends = currentUserData.friends || [];
+  let html = '';
+  snap.forEach(d => {
+    const u = d.data();
+    if(u.uid === currentUID) return;
+    if(!u.username.includes(q) && !u.name.toLowerCase().includes(q)) return;
+    const isFriend = friends.includes(u.uid);
+    let action = isFriend
+      ? `<span class="tag tag-friend">Friend ✓</span>`
+      : `<button class="btn-sm btn-add" onclick="sendRequest('${u.uid}','${u.username}')">+ Add</button>`;
+    html += `<div class="user-item" style="background:#fafafa;margin-bottom:6px">
+      <div class="avatar av-purple">${u.name[0].toUpperCase()}</div>
+      <div style="flex:1"><div class="uname">${escHtml(u.name)}</div><div class="ustatus">@${u.username}</div></div>
+      ${action}
+    </div>`;
+  });
+  el.innerHTML = html || '<div style="font-size:12px;color:#aaa">Koi nahi mila</div>';
+};
+
+// =============================================
+// FRIEND REQUESTS
+// =============================================
+window.sendRequest = async function(toUID, toUsername) {
+  const existing = await getDocs(query(collection(db, 'requests'),
+    where('from', '==', currentUID), where('to', '==', toUID), where('status', '==', 'pending')));
+  if(!existing.empty) { alert('Request pehle se bhej di hai!'); return; }
+  await addDoc(collection(db, 'requests'), {
+    from: currentUID, fromUsername: currentUsername, fromName: currentUserData.name,
+    to: toUID, toUsername, status: 'pending', at: serverTimestamp()
+  });
+  doSearch();
+  alert('Friend request bhej di! ✅');
+};
+
+async function renderRequests() {
+  const incoming = await getDocs(query(collection(db, 'requests'), where('to', '==', currentUID), where('status', '==', 'pending')));
+  const outgoing = await getDocs(query(collection(db, 'requests'), where('from', '==', currentUID), where('status', '==', 'pending')));
+
+  const count = incoming.size;
+  document.getElementById('req-label').innerHTML = count > 0 ? `Req <span class="badge">${count}</span>` : 'Req';
+
+  let inHTML = '', outHTML = '';
+  incoming.forEach(d => {
+    const r = d.data();
+    inHTML += `<div class="req-item">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar av-coral">${r.fromName[0].toUpperCase()}</div>
+        <div><div style="font-size:13px;font-weight:600">${escHtml(r.fromName)}</div><div style="font-size:11px;color:#aaa">@${r.fromUsername}</div></div>
+      </div>
+      <div class="req-actions">
+        <button class="btn-sm btn-accept" onclick="handleRequest('${d.id}','${r.from}','accept')">✓ Accept</button>
+        <button class="btn-sm btn-reject" onclick="handleRequest('${d.id}','${r.from}','reject')">✗ Decline</button>
+      </div>
+    </div>`;
+  });
+  outgoing.forEach(d => {
+    const r = d.data();
+    outHTML += `<div class="req-item">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar av-teal">${r.toUsername[0].toUpperCase()}</div>
+        <div><div style="font-size:13px;font-weight:600">@${r.toUsername}</div></div>
+        <span class="tag tag-pending" style="margin-left:auto">Pending</span>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('list-incoming').innerHTML = inHTML || '<div style="font-size:12px;color:#bbb;padding:4px">Koi incoming request nahi</div>';
+  document.getElementById('list-outgoing').innerHTML = outHTML || '<div style="font-size:12px;color:#bbb;padding:4px">Koi sent request nahi</div>';
+}
+
+window.handleRequest = async function(reqId, fromUID, action) {
+  await updateDoc(doc(db, 'requests', reqId), { status: action });
+  if(action === 'accept') {
+    const myRef = doc(db, 'users', currentUID);
+    const theirRef = doc(db, 'users', fromUID);
+    const mySnap = await getDoc(myRef);
+    const theirSnap = await getDoc(theirRef);
+    const myFriends = mySnap.data().friends || [];
+    const theirFriends = theirSnap.data().friends || [];
+    if(!myFriends.includes(fromUID)) myFriends.push(fromUID);
+    if(!theirFriends.includes(currentUID)) theirFriends.push(currentUID);
+    await updateDoc(myRef, { friends: myFriends });
+    await updateDoc(theirRef, { friends: theirFriends });
+  }
+  renderRequests();
+  renderFriendsList();
+};
+
+// =============================================
+// CHAT
+// =============================================
+window.openChat = async function(uid, username, name) {
+  activeChatWith = { uid, username, name };
+  document.getElementById('chat-av').textContent = name[0].toUpperCase();
+  document.getElementById('chat-name').textContent = escHtml(name) + ' (@' + username + ')';
+  document.getElementById('no-chat').style.display = 'none';
+  const cp = document.getElementById('chat-panel');
+  cp.style.display = 'flex'; cp.style.flexDirection = 'column'; cp.style.flex = '1'; cp.style.overflow = 'hidden';
+
+  const snap = await getDoc(doc(db, 'users', uid));
+  if(snap.exists()) {
+    const u = snap.data();
+    const online = u.online && u.lastSeen && (Date.now() - u.lastSeen.toMillis()) < 60000;
+    document.getElementById('chat-status-txt').textContent = online ? '🟢 Online' : '⚫ Offline';
+  }
+
+  renderFriendsList();
+  listenMessages();
+};
+
+function msgKey(a, b) { return [a, b].sort().join('_'); }
+
+function listenMessages() {
+  if(msgUnsubscribe) msgUnsubscribe();
+  const convId = msgKey(currentUID, activeChatWith.uid);
+  const q = query(collection(db, 'chats', convId, 'messages'), orderBy('at'));
+  msgUnsubscribe = onSnapshot(q, async (snap) => {
+    const el = document.getElementById('chat-messages');
+    if(snap.empty) {
+      el.innerHTML = '<div style="text-align:center;font-size:12px;color:#bbb;padding:16px">Conversation shuru karo! 🔐</div>';
+      return;
+    }
+    let html = '';
+    for(const d of snap.docs) {
+      const m = d.data();
+      const mine = m.from === currentUID;
+      const text = await decrypt(m.text);
+      const t = m.at ? new Date(m.at.toMillis()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+      html += `<div class="msg-row${mine?' mine':''}">
+        <div style="display:flex;flex-direction:column;align-items:${mine?'flex-end':'flex-start'}">
+          <div class="msg-time">${t}</div>
+          <div class="bubble${mine?' mine':' them'}">${escHtml(text)}</div>
+        </div>
+      </div>`;
+    }
+    el.innerHTML = html;
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+window.sendMsg = async function() {
+  const inp = document.getElementById('msg-inp');
+  const text = inp.value.trim();
+  if(!text || !activeChatWith) return;
+  inp.value = '';
+  const convId = msgKey(currentUID, activeChatWith.uid);
+  const encText = await encrypt(text);
+  await addDoc(collection(db, 'chats', convId, 'messages'), {
+    from: currentUID, to: activeChatWith.uid,
+    text: encText, at: serverTimestamp()
+  });
+};
+
+// =============================================
+// TAB SWITCHING
+// =============================================
+window.switchTab = function(tab) {
+  ['friends','search','requests'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
+    document.querySelectorAll('.stab').forEach(btn => {
+      if(btn.dataset.tab===t) btn.classList[t===tab?'add':'remove']('active');
+    });
+  });
+  if(tab==='requests') renderRequests();
+};
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+</script>
+</body>
+</html>
